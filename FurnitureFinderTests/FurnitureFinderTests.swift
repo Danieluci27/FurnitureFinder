@@ -6,31 +6,62 @@
 //
 
 import XCTest
+import CoreML
+import Accelerate
 @testable import FurnitureFinder
 
 final class FurnitureFinderTests: XCTestCase {
+    func testSegmentAnythingAPILatency() async throws {
+            let testImage = UIImage(named: "sofa")!
+            let testBox: [[CGFloat]] = [[0.1, 0.1, 0.5, 0.5]]
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+            let mask = await fetchMask(cropImage: testImage, boxArray: testBox)
+            XCTAssertNotNil(mask)
     }
-
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-    }
-
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
-    }
-
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
+    
+    func testYOLOPerformance() {
+        let testImage = UIImage(named: "room")!
+        let detector = try! FurnitureDetector()
         self.measure {
-            // Put the code you want to measure the time of here.
+            do {
+                try detector.predict(img: testImage)
+                let results = (try? detector.processDetectionResults()) ?? []
+                XCTAssertFalse(results.isEmpty, "No detections produced")
+            } catch {
+                XCTFail("YOLO prediction failed: \(error)")
+            }
         }
     }
+    
+    func testAnalysisPerformanceTime() async throws {
+        let ia = ImageAnalysis()
+        guard let sampleImage = UIImage(named: "room") else {
+            XCTFail("Sample image not found")
+            return
+        }
 
+        self.measure {
+            let expectation = XCTestExpectation(description: "analysis")
+            Task {
+                ia.runAnalysis(on: sampleImage)
+                
+                expectation.fulfill()
+            }
+            wait(for: [expectation], timeout: 15)
+        }
+    }
+    
+    func testAnalysisPerformance() async throws {
+        let ia = ImageAnalysis()
+        guard let sampleImage = UIImage(named: "room") else {
+            XCTFail("Sample image not found")
+            return
+        }
+        ia.runAnalysis(on: sampleImage)
+        XCTAssertGreaterThan(ia.furnitureImages.count, 0, "No images were produced")
+        XCTAssertGreaterThan(ia.furnitureCaptions.count, 0, "No images were produced")
+        XCTAssertGreaterThan(ia.segmentationMasks.count, 0, "No images were produced")
+    }
+    
+    
 }
