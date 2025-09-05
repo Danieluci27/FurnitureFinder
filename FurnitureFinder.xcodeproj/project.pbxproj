@@ -101,7 +101,6 @@
 		65B2F8CC2E0A6137002D2389 /* FurnitureFinderUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FurnitureFinderUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		65B473362E13666B003A6821 /* YOLOv3Tiny.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; name = YOLOv3Tiny.mlpackage; path = ../../../Downloads/YOLOv3Tiny.mlpackage; sourceTree = "<group>"; };
 		65C5BD732E6AF74700009017 /* FurnitureDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FurnitureDetector.swift; sourceTree = "<group>"; };
-		65C5BD752E6B1BBF00009017 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -173,7 +172,6 @@
 		65B2F8A32E0A6134002D2389 = {
 			isa = PBXGroup;
 			children = (
-				65C5BD752E6B1BBF00009017 /* .gitignore */,
 				65B2F8AE2E0A6134002D2389 /* FurnitureFinder */,
 				65B2F8BF2E0A6137002D2389 /* FurnitureFinderTests */,
 				65B2F8C92E0A6137002D2389 /* FurnitureFinderUITests */,
