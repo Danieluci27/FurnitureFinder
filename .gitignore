@@ -1,0 +1,23 @@
+# --- Xcode ---
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcworkspace
+*.lock
+
+# --- Dependencies ---
+Pods/
+.build/
+
+# --- Core ML compiled models ---
+*.mlmodelc
+*.mlpackage
+*.mlproj
+
+# --- ML weights and formats ---
+*.onnx
+*.pb
+*.h5
+*.pt
+*.pth
+*.ckpt
