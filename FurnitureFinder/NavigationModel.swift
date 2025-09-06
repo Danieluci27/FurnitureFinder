@@ -13,5 +13,5 @@ class NavigationModel: ObservableObject {
     @Published var selectedImage: UIImage?
     @Published var selectedMasks: [Int: UIImage] = [:]
     @Published var selectedItems: [Int: [SearchItem]] = [:]
-    @Published var showInstruction: Bool = false
+    @Published var masksReady: Bool = true
 }

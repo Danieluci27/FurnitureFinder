@@ -20,7 +20,7 @@
 		6551A2832E6AAF0B00A9B21D /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6551A2822E6AAF0B00A9B21D /* GoogleService-Info.plist */; };
 		6551A2842E6AAF0B00A9B21D /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 6551A2822E6AAF0B00A9B21D /* GoogleService-Info.plist */; };
 		6588C3EA2E2CDFF300B79463 /* response.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6588C3E92E2CDFF300B79463 /* response.swift */; };
-		6588C4222E32B4F100B79463 /* ResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6588C4212E32B4F100B79463 /* ResultsView.swift */; };
+		6588C4222E32B4F100B79463 /* ProductsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6588C4212E32B4F100B79463 /* ProductsView.swift */; };
 		6588C4242E32B58E00B79463 /* AnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6588C4232E32B58E00B79463 /* AnalysisView.swift */; };
 		6588C4262E32B5FB00B79463 /* UIImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6588C4252E32B5FB00B79463 /* UIImage.swift */; };
 		6588C4282E32B75400B79463 /* SegmentAnythingAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6588C4272E32B75400B79463 /* SegmentAnythingAPI.swift */; };
@@ -47,6 +47,8 @@
 		65B2F8CD2E0A6137002D2389 /* FurnitureFinderUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65B2F8CC2E0A6137002D2389 /* FurnitureFinderUITestsLaunchTests.swift */; };
 		65B473372E13666B003A6821 /* YOLOv3Tiny.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 65B473362E13666B003A6821 /* YOLOv3Tiny.mlpackage */; };
 		65C5BD742E6AF76200009017 /* FurnitureDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65C5BD732E6AF74700009017 /* FurnitureDetector.swift */; };
+		65C5BD772E6C25C900009017 /* ResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65C5BD762E6C1C9300009017 /* ResultsView.swift */; };
+		65C5BD782E6C25C900009017 /* ResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65C5BD762E6C1C9300009017 /* ResultsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,7 +71,7 @@
 /* Begin PBXFileReference section */
 		6551A2822E6AAF0B00A9B21D /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		6588C3E92E2CDFF300B79463 /* response.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = response.swift; sourceTree = "<group>"; };
-		6588C4212E32B4F100B79463 /* ResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultsView.swift; sourceTree = "<group>"; };
+		6588C4212E32B4F100B79463 /* ProductsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductsView.swift; sourceTree = "<group>"; };
 		6588C4232E32B58E00B79463 /* AnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisView.swift; sourceTree = "<group>"; };
 		6588C4252E32B5FB00B79463 /* UIImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIImage.swift; sourceTree = "<group>"; };
 		6588C4272E32B75400B79463 /* SegmentAnythingAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SegmentAnythingAPI.swift; sourceTree = "<group>"; };
@@ -101,6 +103,7 @@
 		65B2F8CC2E0A6137002D2389 /* FurnitureFinderUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FurnitureFinderUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		65B473362E13666B003A6821 /* YOLOv3Tiny.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = folder.mlpackage; name = YOLOv3Tiny.mlpackage; path = ../../../Downloads/YOLOv3Tiny.mlpackage; sourceTree = "<group>"; };
 		65C5BD732E6AF74700009017 /* FurnitureDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FurnitureDetector.swift; sourceTree = "<group>"; };
+		65C5BD762E6C1C9300009017 /* ResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -201,9 +204,10 @@
 				6588C3E92E2CDFF300B79463 /* response.swift */,
 				65B473362E13666B003A6821 /* YOLOv3Tiny.mlpackage */,
 				65B2F8B12E0A6134002D2389 /* ContentView.swift */,
-				6588C4212E32B4F100B79463 /* ResultsView.swift */,
+				6588C4212E32B4F100B79463 /* ProductsView.swift */,
 				6588C4232E32B58E00B79463 /* AnalysisView.swift */,
 				6588C42B2E32B87B00B79463 /* MaskedImageView.swift */,
+				65C5BD762E6C1C9300009017 /* ResultsView.swift */,
 				65943CC12E202494000CEF2F /* ImageAnalysis.swift */,
 				6551A2682E6A838600A9B21D /* YOLO */,
 				65A9448B2E49CF4100D19485 /* Encoders */,
@@ -383,7 +387,7 @@
 			files = (
 				65943CBE2E16827C000CEF2F /* YOLOv3Int8LUT.mlmodel in Sources */,
 				65943CC02E1798AC000CEF2F /* COCOLabels.swift in Sources */,
-				6588C4222E32B4F100B79463 /* ResultsView.swift in Sources */,
+				6588C4222E32B4F100B79463 /* ProductsView.swift in Sources */,
 				65C5BD742E6AF76200009017 /* FurnitureDetector.swift in Sources */,
 				6588C3EA2E2CDFF300B79463 /* response.swift in Sources */,
 				6588C42E2E32BD5500B79463 /* SavedView.swift in Sources */,
@@ -394,6 +398,7 @@
 				65B473372E13666B003A6821 /* YOLOv3Tiny.mlpackage in Sources */,
 				65B2F8B22E0A6134002D2389 /* ContentView.swift in Sources */,
 				65B2F8B02E0A6134002D2389 /* FurnitureFinderApp.swift in Sources */,
+				65C5BD772E6C25C900009017 /* ResultsView.swift in Sources */,
 				65A944862E49C56D00D19485 /* ImageEncoder.swift in Sources */,
 				6588C4262E32B5FB00B79463 /* UIImage.swift in Sources */,
 				6588C42C2E32B87B00B79463 /* MaskedImageView.swift in Sources */,
@@ -408,6 +413,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				65B2F8C12E0A6137002D2389 /* FurnitureFinderTests.swift in Sources */,
+				65C5BD782E6C25C900009017 /* ResultsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -22,7 +22,7 @@ func sendToSegmentAnythingAPI(
     cropImage: UIImage,
     boxArray: [[CGFloat]],
 ) async throws -> [UIImage?] {
-    guard let url = URL(string: "http://localhost:8080/api/v1/sam2/segment") else {
+    guard let url = URL(string: "https://segment-anything-gpu-838389616002.us-central1.run.app/api/v1/sam2/segment") else {
         return []
     }
     /*

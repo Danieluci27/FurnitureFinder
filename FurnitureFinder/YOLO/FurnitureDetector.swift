@@ -24,13 +24,14 @@ let IOU_THRESHOLD: Double = 0.6
 let NUM_CLASS: Int = 80
 let INPUT_SIZE: CGSize = CGSize(width: 416, height: 416)
 
-class FurnitureDetector {
+class FurnitureDetector: ObservableObject {
     var model: YOLOv3Int8LUT
     var detectionResults: YOLOv3Int8LUTOutput?
     
     init (configuration config: MLModelConfiguration = .init())
     throws {
         self.model = try YOLOv3Int8LUT(configuration: config)
+        print("Model ready.")
     }
     
     func predict(img: UIImage) throws {

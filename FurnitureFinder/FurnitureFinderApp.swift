@@ -21,10 +21,12 @@ class AppDelegate : NSObject, UIApplicationDelegate {
 @main
 struct FurnitureFinderApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    let detector = try! FurnitureDetector()
     
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(detector)
         }
     }
 }

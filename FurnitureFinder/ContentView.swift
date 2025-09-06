@@ -23,20 +23,21 @@ extension Int: Identifiable {
 enum Screen: Hashable {
     case analysis
     case saved
-    case maskedPage
+    case resultsView
 }
 
 struct ContentView: View {
+    @EnvironmentObject private var detector: FurnitureDetector
     @State private var path = NavigationPath()
     @StateObject private var navModel = NavigationModel()
 
     var body: some View {
         NavigationStack(path: $path) {
             VStack(spacing: 20) {
-                Button("Saved") { 
+                Button("saved") {
                     path.append(Screen.saved)
+                    
                 }
-
                 Button("Analysis") {
                     path.append(Screen.analysis)
                 }
@@ -46,13 +47,14 @@ struct ContentView: View {
             .navigationDestination(for: Screen.self) { screen in
                 switch screen {
                 case .analysis:
-                    AnalysisView()
+                    AnalysisView(detector: detector)
                 case .saved:
                     SavedView(path: $path)
-                case .maskedPage:
-                    MaskedImagePage(
+                case .resultsView:
+                    ResultsView(
                             image: navModel.selectedImage,
                             masks: navModel.selectedMasks,
+                            masksReady: navModel.masksReady,
                             items: navModel.selectedItems
                     )
                 }

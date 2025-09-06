@@ -9,6 +9,22 @@ import Foundation
 import SwiftUI
 import CoreML
 
+
+struct SavedImageTile: View {
+    let image: UIImage
+    let onTap: () -> Void
+    var body: some View {
+        Image(uiImage: image)
+            .resizable()
+            .scaledToFill()
+            .frame(width: 100, height: 100)
+            .clipped()
+            .cornerRadius(6)
+            .onTapGesture {
+                onTap() }
+    }
+}
+
 struct SavedView: View {
     @EnvironmentObject var navModel: NavigationModel
     @Binding var path: NavigationPath
@@ -21,21 +37,6 @@ struct SavedView: View {
     @State private var isSearching: Bool = false
     @State private var searchText: String = ""
     @State private var pendingText: String = ""
-    
-    struct SavedImageTile: View {
-        let image: UIImage
-        let onTap: () -> Void
-        var body: some View {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 100, height: 100)
-                .clipped()
-                .cornerRadius(6)
-                .onTapGesture { 
-                    onTap() }
-        }
-    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -64,17 +65,18 @@ struct SavedView: View {
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
             } else {
                 ScrollView {
-                    //Default if (searchText == empty) else use searchResults to show the custom set of images.
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
                         let indices: [Int] = self.searchText.isEmpty
                             ? Array(self.savedImages.indices)
                             : self.searchResults.map { $0.index }
-                        ForEach(indices, id: \.self) { index in
-                            SavedImageTile(image: self.savedImages[index]) {
-                                navModel.selectedImage = self.savedImages[index]
+                        ForEach(indices, id: \.self) { (index: Int) in
+                            let savedImage = self.savedImages[index]
+                            SavedImageTile(image: savedImage) {
+                                navModel.selectedImage = savedImage
                                 navModel.selectedMasks = self.savedMasksList[index]
                                 navModel.selectedItems = self.savedItemsList[index]
-                                path.append(Screen.maskedPage)
+                                navModel.masksReady = true
+                                path.append(Screen.resultsView)
                             }
                         }
                         .padding(.horizontal, 8)
@@ -83,7 +85,6 @@ struct SavedView: View {
             }
         }
         .onAppear {
-            //firstAppear on current usage?
             if self.firstAppear {
                 self.loadSavedData()
                 self.firstAppear = false
@@ -99,6 +100,11 @@ struct SavedView: View {
         }
         let textEncoder = try! TextEncoder(resourcesAt: path)
         let textEmb = try? textEncoder.computeTextEmbedding(prompt: self.searchText)
+    
+        if self.searchText.isEmpty {
+            throw SearchError.EmptyText
+        }
+        
         if let textEmb {
             for i in 0..<self.savedShapedArray.count {
                 if let shapedArr = self.savedShapedArray[i] {
@@ -112,10 +118,7 @@ struct SavedView: View {
             }
             guard !self.searchResults.isEmpty else { return }
             
-            // convert to tuples and sort by score desc
             self.searchResults = self.searchResults.sorted { $0.score > $1.score }
-
-            
             self.isSearching = false
             print(self.isSearching)
         } else {
@@ -168,68 +171,8 @@ struct SavedView: View {
     }
 }
 
-struct MaskedImagePage: View {
-    let image: UIImage?
-    let masks: [Int: UIImage]
-    let items: [Int: [SearchItem]]
-    @State private var selectedIndex: Int? = nil
-    @State private var showInstruction: Bool = false
-
-    var body: some View {
-        GeometryReader { geo in
-            VStack(spacing: 0) {
-                if let img = image {
-                    MaskedImageView(
-                        baseImage: img,
-                        masks: masks,
-                        maskReady: true,
-                        onMaskTap: { tappedIdx in
-                            selectedIndex = tappedIdx
-                        }
-                    )
-                    .frame(width: geo.size.width, height: geo.size.height / 2)
-                } else {
-                    Text("No image loaded.")
-                        .frame(height: geo.size.height / 2)
-                }
-
-                ZStack {
-                    // Fixed-position robot
-                    Image("robot")
-                        .resizable()
-                        .frame(width: 60, height: 60)
-                        .position(x: 60, y: geo.size.height / 2 - 40)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            showInstruction.toggle()
-                            print(showInstruction)
-                        }
-
-                    // Message above robot
-                    if showInstruction {
-                        Text("Click on the highlighted objects to view the products!")
-                            .font(.subheadline)
-                            .padding(8)
-                            .background(Color.white)
-                            .cornerRadius(10)
-                            .shadow(radius: 2)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .position(x: 190, y: geo.size.height / 2 - 110)
-                    }
-                }
-                .frame(width: geo.size.width, height: geo.size.height / 2)
-            }
-            .onAppear {
-                showInstruction = false
-            }
-            .sheet(item: $selectedIndex, onDismiss: {selectedIndex = nil}) { idx in
-                if let products = items[idx] {
-                    ResultsView(items: products,
-                                dismiss: { selectedIndex = nil })
-                }
-            }
-        }
-    }
+enum SearchError: Error {
+    case EmptyText
 }
 
 enum JSONDecodeError: Error {

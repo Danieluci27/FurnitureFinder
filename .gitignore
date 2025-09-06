@@ -23,5 +23,4 @@ Pods/
 *.csv
 *.tsv
 *.jsonl
-
 GoogleService-Info.plist

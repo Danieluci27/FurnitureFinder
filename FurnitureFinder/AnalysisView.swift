@@ -17,42 +17,59 @@ struct ShapedArrayCodable: Codable {
 
 
 struct AnalysisView: View {
-    @StateObject private var vm = ImageAnalysis()
+    @StateObject private var vm: ImageAnalysis
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var isPickerPresented = false
-    // …and a separate UIImage that you fill later
     @State private var imageToAnalyze: UIImage? = UIImage(named: "room")
     @State private var selectedIndex: Int?
     @State private var selectedMaskIndex: Int?
     @State private var isShowingResult: Bool = false
     @State private var showSaveAlert = false
     @State private var saveStatusMessage = ""
+    
+    init(detector: FurnitureDetector) {
+        _vm = StateObject(wrappedValue: ImageAnalysis(detector: detector))
+    }
     var body: some View {
         NavigationView{
             GeometryReader { geo in
                 VStack(spacing: 0) {
-                    // base image (picked or placeholder “room”)
-                    if let ui = imageToAnalyze {
-                        MaskedImageView(
-                            baseImage: ui,
+                    if let img = imageToAnalyze {
+                        ResultsView(
+                            image: img,
                             masks: vm.segmentationMasks,
-                            maskReady: !vm.segmentationMasks.isEmpty && !vm.isLoading
-                            
-                        ) { tappedIdx in
-                            selectedIndex = tappedIdx
-                        }
+                            //show the mask only if segmentationMasks array is not empty and execution is finished.
+                            masksReady: !vm.segmentationMasks.isEmpty && (!vm.isLoading && vm.analysisStarted),
+                            items: vm.itemsByIndex,
+                        )
                         .frame(
                             width: geo.size.width,
                             height: geo.size.height / 2
                         )
-                        
                     }
-                    
+                    else {
+                        ZStack {
+                            // gray placeholder background
+                            Rectangle()
+                                .fill(Color(UIColor.systemGray5))
+                                .frame(width: geo.size.width, height: geo.size.height / 2)
+                            
+                            // hint content
+                            VStack(spacing: 8) {
+                                Image(systemName: "photo.on.rectangle.angled")
+                                    .font(.system(size: 40))
+                                    .opacity(0.6)
+                                Text("Upload an image")
+                                    .font(.headline)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture { isPickerPresented = true }
+                    }
                     Divider()
-                    
-                    // ── BOTTOM HALF: controls or result-grid ──
+                    //Executing Analysis/Loading View
                     if vm.isLoading {
-                        // show spinner while loading
                         VStack {
                             Spacer()
                             ProgressView()
@@ -62,9 +79,8 @@ struct AnalysisView: View {
                         .frame(height: geo.size.height / 2)
                     }
                     
-                    // start + loading
-                    
-                    if (vm.start && !vm.isLoading) {
+                    //Pre-analysis View
+                    if (!vm.analysisStarted && !vm.isLoading) {
                         // before running dummyAnalysis: show Pick & Analyze
                         HStack(spacing: 20) {
                             PhotosPicker(
@@ -107,8 +123,8 @@ struct AnalysisView: View {
                         .frame(height: geo.size.height / 2)
                         
                     }
-                    //TO-DO: save this to icloud.
-                    else if (!vm.start && !vm.isLoading) {
+                    //Post-analysis View
+                    else if (vm.analysisStarted && !vm.isLoading) {
                         //class Storage
                         Button("Save") {
                             var statusMessages: [String] = []
@@ -195,7 +211,7 @@ struct AnalysisView: View {
                     Text(saveStatusMessage)
                 })
                 .sheet(item: $selectedIndex, onDismiss: { selectedIndex = nil }) { idx in
-                    ResultsView(
+                    ProductsView(
                         items: vm.itemsByIndex[idx] ?? [],
                         dismiss: { selectedIndex = nil }
                     )

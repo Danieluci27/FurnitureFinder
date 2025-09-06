@@ -1,76 +1,65 @@
-//
-//  ResultsView.swift
-//  FurnitureFinder
-//
-//  Created by Daniel Shin on 7/25/25.
-//
-
 import SwiftUI
-import UIKit
-
-struct CaptionResponse: Decodable {
-    struct Result: Decodable {
-        let filename: String
-        let caption: String
-    }
-    let results: [Result]
-}
-
-struct SearchItem: Identifiable, Codable {
-    let id = UUID()
-    let title: String
-    let link: String
-    let thumbnail: String
-    
-    // only decode title/link/thumbnail from your JSON
-    private enum CodingKeys: String, CodingKey {
-        case title, link, thumbnail
-    }
-}
 
 struct ResultsView: View {
-    let items: [SearchItem]
-    let dismiss: () -> Void
-    
+    let image: UIImage?
+    let masks: [Int: UIImage]
+    let masksReady: Bool
+    let items: [Int: [SearchItem]]
+    @State private var selectedIndex: Int? = nil
+    @State private var showInstruction: Bool = false
+
     var body: some View {
-        NavigationView {
-            List(items) { item in
-                HStack(alignment: .top, spacing: 12) {
-                    // iOS 15+ AsyncImage
-                    AsyncImage(url: URL(string: item.thumbnail)) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView()
-                                .frame(width: 60, height: 60)
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 60, height: 60)
-                                .cornerRadius(4)
-                        case .failure:
-                            Color.gray
-                                .frame(width: 60, height: 60)
-                        @unknown default: EmptyView()
+        GeometryReader { geo in
+            VStack(spacing: 0) {
+                if let img = image {
+                    MaskedImageView(
+                        baseImage: img,
+                        masks: masks,
+                        maskReady: masksReady,
+                        onMaskTap: { tappedIdx in
+                            selectedIndex = tappedIdx
                         }
-                    }
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(item.title)
-                            .font(.headline)
-                        // tappable link
-                        if let url = URL(string: item.link) {
-                            Link("View on Amazon", destination: url)
-                                .font(.subheadline)
-                        }
-                    }
+                    )
+                    .frame(width: geo.size.width, height: geo.size.height / 2)
+                } else {
+                    Text("No image loaded.")
+                        .frame(height: geo.size.height / 2)
                 }
-                .padding(.vertical, 8)
+                if masksReady {
+                    ZStack {
+                        Image("robot")
+                            .resizable()
+                            .frame(width: 60, height: 60)
+                            .position(x: 60, y: geo.size.height / 2 - 40)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                showInstruction.toggle()
+                                print(showInstruction)
+                            }
+
+                        if showInstruction {
+                            Text("Click on the highlighted objects to view the products!")
+                                .font(.subheadline)
+                                .padding(8)
+                                .background(Color.white)
+                                .cornerRadius(10)
+                                .shadow(radius: 2)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .position(x: 190, y: geo.size.height / 2 - 110)
+                        }
+                    }
+                    .frame(width: geo.size.width, height: geo.size.height / 2)
+                }
             }
-            .navigationTitle("Products")
-            .navigationBarItems(trailing:
-                                    Button("Done") { dismiss() }
-            )
+            .onAppear {
+                showInstruction = false
+            }
+            .sheet(item: $selectedIndex, onDismiss: {selectedIndex = nil}) { idx in
+                if let products = items[idx] {
+                    ProductsView(items: products,
+                                dismiss: { selectedIndex = nil })
+                }
+            }
         }
     }
 }
