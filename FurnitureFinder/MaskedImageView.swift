@@ -9,7 +9,7 @@ import SwiftUI
 
 struct MaskedImageView: View {
   let baseImage: UIImage
-  let masks: [Int: UIImage]
+  let masks: [UIImage]
   let maskReady: Bool
   var onMaskTap: (Int) -> Void
 
@@ -23,20 +23,18 @@ struct MaskedImageView: View {
           .clipped()
           .overlay(
             Group {
-                if maskReady {
-                    ForEach(masks.keys.sorted(), id: \.self) { idx in
-                        if let maskImage = masks[idx] {
-                            Image(uiImage: maskImage)
-                               .resizable()
-                               .scaledToFill()
-                               .frame(width: geo.size.width, height: geo.size.height)
-                               .clipped()
-                               .opacity(0.3)
-                        }
-                    }
+              if maskReady {
+                ForEach(masks.indices, id: \.self) { (idx: Int) in
+                  Image(uiImage: masks[idx])
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
+                    .opacity(0.3)
                 }
+              }
             }
-                  )
+          )
       }
       // overlay an invisible tap recognizer that gives us the point
       .contentShape(Rectangle())
@@ -44,17 +42,15 @@ struct MaskedImageView: View {
         DragGesture(minimumDistance: 0)
           .onEnded { value in
             let pt = value.location
-            for idx in masks.keys.sorted() {
-                if let mask = masks[idx] {
-                    if mask.alpha(at: pt, in: geo.size) > 0.1 {
-                      onMaskTap(idx)
-                      break
-                    }
-                }
+            for idx in masks.indices {
+              if masks[idx].alpha(at: pt, in: geo.size) > 0.1 {
+                onMaskTap(idx)
+                break
+              }
             }
           }
-        //similar items -> pick only one to save API cost.
       )
+      // similar items -> pick only one to save API cost.
     }
   }
 }

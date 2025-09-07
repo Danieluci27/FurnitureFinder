@@ -17,30 +17,35 @@ struct ShapedArrayCodable: Codable {
 
 
 struct AnalysisView: View {
-    @StateObject private var vm: ImageAnalysis
-    @State private var selectedItem: PhotosPickerItem? = nil
-    @State private var isPickerPresented = false
-    @State private var imageToAnalyze: UIImage? = UIImage(named: "room")
+    @EnvironmentObject private var vm: ImageAnalysis
+    @EnvironmentObject private var storage: DeviceStorageModel
+    @State private var selectedItem: PhotosPickerItem?
+    @State private var isPickerPresented: Bool
     @State private var selectedIndex: Int?
     @State private var selectedMaskIndex: Int?
-    @State private var isShowingResult: Bool = false
-    @State private var showSaveAlert = false
-    @State private var saveStatusMessage = ""
+    @State private var isShowingResult: Bool
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
     
-    init(detector: FurnitureDetector) {
-        _vm = StateObject(wrappedValue: ImageAnalysis(detector: detector))
+    init() {
+        self._selectedItem = State(initialValue: nil)
+        self._isPickerPresented = State(initialValue: true)
+        self._isShowingResult = State(initialValue: false)
+        self._errorMessage = State(initialValue: "")
+        self._showErrorAlert = State(initialValue: false)
     }
+    
     var body: some View {
         NavigationView{
             GeometryReader { geo in
                 VStack(spacing: 0) {
-                    if let img = imageToAnalyze {
+                    if let img = vm.data.image {
                         ResultsView(
                             image: img,
-                            masks: vm.segmentationMasks,
+                            masks: vm.data.maskList,
                             //show the mask only if segmentationMasks array is not empty and execution is finished.
                             masksReady: !vm.segmentationMasks.isEmpty && (!vm.isLoading && vm.analysisStarted),
-                            items: vm.itemsByIndex,
+                            items: vm.data.itemsList,
                         )
                         .frame(
                             width: geo.size.width,
@@ -100,22 +105,20 @@ struct AnalysisView: View {
                                 Task {
                                     if let data = try? await item.loadTransferable(type: Data.self),
                                        let ui = UIImage(data: data) {
-                                        imageToAnalyze = ui
+                                        vm.data.image = UIImage(named: "room")
                                     }
                                 }
                             }
                             
                             Button("Analyze") {
-                                if let ui = imageToAnalyze {
-                                    Task {
-                                        vm.runAnalysis(on: ui)
-                                    }
+                                Task {
+                                    vm.dummyAnalysis()
                                 }
                             }
-                            .disabled(imageToAnalyze == nil)
+                            .disabled(vm.data.image == nil)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(imageToAnalyze == nil ? Color.gray : Color.green)
+                            .background(vm.data.image == nil ? Color.gray : Color.green)
                             .foregroundColor(.white)
                             .cornerRadius(8)
                         }
@@ -127,89 +130,21 @@ struct AnalysisView: View {
                     else if (vm.analysisStarted && !vm.isLoading) {
                         //class Storage
                         Button("Save") {
-                            var statusMessages: [String] = []
-                            
-                            let key = "savedSetCounter"
-                            let currentIndex = UserDefaults.standard.integer(forKey: key) // defaults to 0
-                            
-                            let setFolder = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                                .appendingPathComponent("set_\(currentIndex)")
                             do {
-                                try FileManager.default.createDirectory(at: setFolder, withIntermediateDirectories: true)
+                                try storage.storeUserData(resultData: vm.data)
                             } catch {
-                                statusMessages.append("Failed to create folder for set \(currentIndex).")
+                                errorMessage = "Sorry, something went wrong while saving your data. Please try again later."
+                                showErrorAlert = true
                             }
-                            
-                            let imageURL = setFolder.appendingPathComponent("image.png")
-                            if let img = imageToAnalyze {
-                                if let data = img.pngData() {
-                                    do {
-                                        try data.write(to: imageURL)
-                                    } catch {
-                                        statusMessages.append("Failed to save image.")
-                                    }
-                                }
-                            }
-                            
-                            //save encodings
-                            let embeddingURL = setFolder.appendingPathComponent("embedding.json")
-                            if let img = imageToAnalyze {
-                                do {
-                                    guard let path = Bundle.main.resourceURL else {
-                                        fatalError("Couldn’t locate bundle resource root.")
-                                    }
-                                    
-                                    let imgEncoder = try! ImgEncoder(resourcesAt: path)
-                                    
-                                    let imgEmbeddings = try! imgEncoder.computeImgEmbedding(img: img)
-                                    let payload = ShapedArrayCodable(shape: imgEmbeddings.shape, scalars: imgEmbeddings.scalars)
-                                    let data = try JSONEncoder().encode(payload)
-                                    try data.write(to: embeddingURL)
-                                    print(imgEmbeddings)
-                                } catch {
-                                    statusMessages.append("Failed to save embeddings.")
-                                }
-                            }
-                            
-                            
-                            // Save itemsByIndex
-                            let itemsURL = setFolder.appendingPathComponent("itemsByIndex.json")
-                            if let data = try? JSONEncoder().encode(vm.itemsByIndex) {
-                                do {
-                                    try data.write(to: itemsURL)
-                                } catch {
-                                    statusMessages.append("Failed to save items.")
-                                }
-                            } else {
-                                statusMessages.append("Encoding items failed.")
-                            }
-
-                            // Save segmentationMasks
-                            for (index, mask) in vm.segmentationMasks {
-                                if let data = mask.pngData() {
-                                    let maskURL = setFolder.appendingPathComponent("mask_\(index).png")
-                                    do {
-                                        try data.write(to: maskURL)
-                                    } catch {
-                                        statusMessages.append("Failed to save mask \(index).")
-                                    }
-                                } else {
-                                    statusMessages.append("Failed to encode mask \(index).")
-                                }
-                            }
-                        
-                            saveStatusMessage = statusMessages.isEmpty ? "Saved successfully." : statusMessages.joined(separator: "\n")
-                            showSaveAlert = true
-                            
-                            UserDefaults.standard.set(currentIndex + 1, forKey: key)
                         }
+                        .alert("Save Status", isPresented: $showErrorAlert, actions: {
+                            Button("OK", role: .cancel) { }
+                        }, message: {
+                            Text(errorMessage)
+                        })
+                        
                     }
                 }
-                .alert("Save Status", isPresented: $showSaveAlert, actions: {
-                    Button("OK", role: .cancel) { }
-                }, message: {
-                    Text(saveStatusMessage)
-                })
                 .sheet(item: $selectedIndex, onDismiss: { selectedIndex = nil }) { idx in
                     ProductsView(
                         items: vm.itemsByIndex[idx] ?? [],

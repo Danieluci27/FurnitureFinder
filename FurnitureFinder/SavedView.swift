@@ -27,16 +27,29 @@ struct SavedImageTile: View {
 
 struct SavedView: View {
     @EnvironmentObject var navModel: NavigationModel
+    @EnvironmentObject var vm: ImageAnalysis
+    @EnvironmentObject var storage: DeviceStorageModel
     @Binding var path: NavigationPath
-    @State private var savedImages: [UIImage] = []
-    @State private var searchResults: [(index: Int, score: Float)] = []
-    @State private var savedMasksList: [[Int: UIImage]] = []
-    @State private var savedItemsList: [[Int: [SearchItem]]] = []
-    @State private var savedShapedArray: [ShapedArrayCodable?] = []
-    @State private var firstAppear: Bool = true
-    @State private var isSearching: Bool = false
-    @State private var searchText: String = ""
-    @State private var pendingText: String = ""
+    @State var searchResults: [(idx: Int, score: Float)]
+    @State private var firstAppear: Bool
+    @State var isSearching: Bool
+    @State private var embeddings: [ShapedArrayCodable?]
+    @State private var searchText: String
+    @State private var pendingText: String
+    @State private var showAlert: Bool
+    @State private var showAlertMessage: String
+    
+    init (path: Binding<NavigationPath>) {
+        self._path = path
+        self._firstAppear = State(initialValue: true)
+        self._isSearching = State(initialValue: false)
+        self._searchText = State(initialValue: "")
+        self._pendingText = State(initialValue: "")
+        self._searchResults = State(initialValue: [])
+        self._embeddings = State(initialValue: [])
+        self._showAlert = State(initialValue: false)
+        self._showAlertMessage = State(initialValue: "")
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -67,16 +80,19 @@ struct SavedView: View {
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], spacing: 8) {
                         let indices: [Int] = self.searchText.isEmpty
-                            ? Array(self.savedImages.indices)
-                            : self.searchResults.map { $0.index }
+                        ? Array(storage.userData.indices)
+                            : self.searchResults.map { $0.idx }
                         ForEach(indices, id: \.self) { (index: Int) in
-                            let savedImage = self.savedImages[index]
-                            SavedImageTile(image: savedImage) {
-                                navModel.selectedImage = savedImage
-                                navModel.selectedMasks = self.savedMasksList[index]
-                                navModel.selectedItems = self.savedItemsList[index]
-                                navModel.masksReady = true
-                                path.append(Screen.resultsView)
+                            if let image = storage.userData[index].image {
+                                let masks = storage.userData[index].maskList
+                                let items = storage.userData[index].itemsList
+                                SavedImageTile(image: image) {
+                                    navModel.selectedImage = image
+                                    navModel.selectedMasks = masks
+                                    navModel.selectedItems = items
+                                    navModel.masksReady = true
+                                    path.append(Screen.resultsView)
+                                }
                             }
                         }
                         .padding(.horizontal, 8)
@@ -85,13 +101,20 @@ struct SavedView: View {
             }
         }
         .onAppear {
-            if self.firstAppear {
-                self.loadSavedData()
-                self.firstAppear = false
+            if !storage.didUserLoad {
+                do {
+                    try storage.loadUserData()
+                    try extractEmbeddings()
+                } catch {
+                    self.showAlertMessage = ""
+                    self.showAlert = true
+                }
             }
         }
+        .alert("Load Status", isPresented: $showAlert, actions: { Button("OK", role: .cancel) {} }, message: { Text(showAlertMessage) })
     }
-    
+}
+extension SavedView {
     func pickPhotos() throws {
         self.isSearching = true
         self.searchResults.removeAll()
@@ -100,14 +123,14 @@ struct SavedView: View {
         }
         let textEncoder = try! TextEncoder(resourcesAt: path)
         let textEmb = try? textEncoder.computeTextEmbedding(prompt: self.searchText)
-    
+
         if self.searchText.isEmpty {
             throw SearchError.EmptyText
         }
         
         if let textEmb {
-            for i in 0..<self.savedShapedArray.count {
-                if let shapedArr = self.savedShapedArray[i] {
+            for i in 0...self.embeddings.count {
+                if let shapedArr = self.embeddings[i] {
                     let imgEmb = MLShapedArray<Float32>(scalars: shapedArr.scalars, shape: shapedArr.shape)
                     let sim = cosine_similarity(A: textEmb, B: imgEmb)
                     print(sim)
@@ -122,51 +145,16 @@ struct SavedView: View {
             self.isSearching = false
             print(self.isSearching)
         } else {
+            print("fails to encode")
             throw TextEncoderError.computeTextEncodingError
         }
     }
+}
 
-    func loadSavedData() {
-        let key = "savedSetCounter"
-        let totalSets = UserDefaults.standard.integer(forKey: key)
-        let docURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-
-        for i in 0..<totalSets {
-            let setFolder = docURL.appendingPathComponent("set_\(i)")
-            let imagePath = setFolder.appendingPathComponent("image.png")
-            if let imageData = try? Data(contentsOf: imagePath),
-               let image = UIImage(data: imageData) {
-                self.savedImages.append(image)
-            } else {
-                continue
-            }
-
-            var masks: [Int: UIImage] = [:]
-            for index in 0..<10 {
-                let maskURL = setFolder.appendingPathComponent("mask_\(index).png")
-                if let data = try? Data(contentsOf: maskURL),
-                   let maskImage = UIImage(data: data) {
-                    masks[index] = maskImage
-                }
-            }
-            self.savedMasksList.append(masks)
-
-            let itemsURL = setFolder.appendingPathComponent("itemsByIndex.json")
-            if let data = try? Data(contentsOf: itemsURL),
-               let decoded = try? JSONDecoder().decode([Int: [SearchItem]].self, from: data) {
-                    self.savedItemsList.append(decoded)
-            } else {
-                self.savedItemsList.append([:])
-            }
-            
-            let embeddingURL = setFolder.appendingPathComponent("embedding.json")
-            if let data = try? Data(contentsOf: embeddingURL),
-               let decoded = try? JSONDecoder().decode(ShapedArrayCodable.self, from: data) {
-                self.savedShapedArray.append(decoded)
-            } else {
-                self.savedShapedArray.append(nil)
-                //if empty, skip
-            }
+extension SavedView {
+    func extractEmbeddings() throws {
+        for idx in storage.userData.indices {
+            self.embeddings.append(storage.userData[idx].embedding)
         }
     }
 }

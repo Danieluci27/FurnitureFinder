@@ -27,7 +27,6 @@ enum Screen: Hashable {
 }
 
 struct ContentView: View {
-    @EnvironmentObject private var detector: FurnitureDetector
     @State private var path = NavigationPath()
     @StateObject private var navModel = NavigationModel()
 
@@ -47,7 +46,7 @@ struct ContentView: View {
             .navigationDestination(for: Screen.self) { screen in
                 switch screen {
                 case .analysis:
-                    AnalysisView(detector: detector)
+                    AnalysisView()
                 case .saved:
                     SavedView(path: $path)
                 case .resultsView:

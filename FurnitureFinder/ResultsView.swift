@@ -2,9 +2,9 @@ import SwiftUI
 
 struct ResultsView: View {
     let image: UIImage?
-    let masks: [Int: UIImage]
+    let masks: [UIImage]
     let masksReady: Bool
-    let items: [Int: [SearchItem]]
+    let items: [[SearchItem]]
     @State private var selectedIndex: Int? = nil
     @State private var showInstruction: Bool = false
 
@@ -55,10 +55,8 @@ struct ResultsView: View {
                 showInstruction = false
             }
             .sheet(item: $selectedIndex, onDismiss: {selectedIndex = nil}) { idx in
-                if let products = items[idx] {
-                    ProductsView(items: products,
+                    ProductsView(items: items[idx],
                                 dismiss: { selectedIndex = nil })
-                }
             }
         }
     }

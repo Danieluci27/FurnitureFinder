@@ -21,12 +21,14 @@ class AppDelegate : NSObject, UIApplicationDelegate {
 @main
 struct FurnitureFinderApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    let detector = try! FurnitureDetector()
+    @StateObject private var vm = ImageAnalysis()
+    @StateObject private var storage = DeviceStorageModel()
     
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(detector)
+                .environmentObject(vm)
+                .environmentObject(storage)
         }
     }
 }
