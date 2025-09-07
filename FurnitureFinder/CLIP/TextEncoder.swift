@@ -6,8 +6,6 @@
 //
 
 import Foundation
-
-import Foundation
 import CoreML
 import UIKit
 
@@ -22,16 +20,21 @@ public struct TextEncoder {
     var tokenizer: Tokenizer
     var model: MLModel
     
-    public init(resourcesAt baseURL: URL,
+    public init(
          configuration config: MLModelConfiguration = .init()
     ) throws {
-        let textEncoderURL = baseURL.appending(path: "TextEncoder_mobileCLIP_s2.mlmodelc")
-        let vocabURL = baseURL.appending(path: "vocab.json")
-        let mergesURL = baseURL.appending(path: "merges.txt")
-
+        guard let modelURL = Bundle.main.url(forResource: "TextEncoder_mobileCLIP_s2", withExtension: "mlmodelc") else {
+            fatalError("Model not found in bundle")
+        }
+        guard let vocabURL = Bundle.main.url(forResource: "vocab", withExtension: "json") else {
+            fatalError("Vocab not found in bundle")
+        }
+        guard let mergesURL = Bundle.main.url(forResource: "merges", withExtension: "txt") else {
+            fatalError("Merges not found in bundle")
+        }
         // Text tokenizer and encoder
         let tokenizer = try Tokenizer(mergesAt: mergesURL, vocabularyAt: vocabURL)
-        let textEncoderModel = try MLModel(contentsOf: textEncoderURL, configuration: config)
+        let textEncoderModel = try! MLModel(contentsOf: modelURL, configuration: config)
         
         self.tokenizer = tokenizer
         self.model = textEncoderModel

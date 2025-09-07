@@ -10,7 +10,7 @@ import SwiftUI
 
 extension DeviceStorageModel {
     func loadUserData() throws {
-        let numData = UserDefaults.standard.integer(forKey: STORAGE_KEY)
+        let numData = UserDefaults.standard.integer(forKey: DATA_COUNTER_KEY)
         print(numData)
         let docURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         
@@ -18,6 +18,7 @@ extension DeviceStorageModel {
             print(i)
             let setFolder = docURL.appendingPathComponent("data_\(i)")
             var storedData = ResultData()
+            let numMask = UserDefaults.standard.integer(forKey: "FurnitureFinderMaskCounter_\(i)")
             
             let imageURL = setFolder.appendingPathComponent(IMAGE_PATH)
             
@@ -38,25 +39,28 @@ extension DeviceStorageModel {
             if let files = try? FileManager.default.contentsOfDirectory(at: maskFolderURL,
                                                                         includingPropertiesForKeys: nil)
             {
-                for url in files where url.pathExtension.lowercased() == "png" {
+                for i in 0..<numMask {
+                    let url = maskFolderURL.appendingPathComponent("mask_\(i).png")
                     if let data = try? Data(contentsOf: url),
                        let mask = UIImage(data: data) {
                         storedData.maskList.append(mask)
+                    } else {
+                        storedData.maskList.append(UIImage())
                     }
                 }
             }
-            
-            print("mask")
+            print(numMask)
+            print("mask: ", storedData.maskList.count)
             
             let itemsURL = setFolder.appendingPathComponent(ITEMS_PATH)
             if let data = try? Data(contentsOf: itemsURL),
-               let decoded = try? JSONDecoder().decode([SearchItem].self, from: data) {
-                storedData.itemsList.append(decoded)
+               let decoded = try? JSONDecoder().decode([[SearchItem]].self, from: data) {
+                storedData.itemsList = decoded
             } else {
-                storedData.itemsList.append([])
+                storedData.itemsList = []
             }
             
-            print("items")
+            print("items", storedData.itemsList.count)
             
             let embeddingURL = setFolder.appendingPathComponent(EMBEDDING_PATH)
             if let data = try? Data(contentsOf: embeddingURL),
@@ -72,5 +76,6 @@ extension DeviceStorageModel {
             
             self.didUserLoad = true
         }
+        
     }
 }

@@ -114,14 +114,13 @@ struct SavedView: View {
         .alert("Load Status", isPresented: $showAlert, actions: { Button("OK", role: .cancel) {} }, message: { Text(showAlertMessage) })
     }
 }
+
+
 extension SavedView {
     func pickPhotos() throws {
         self.isSearching = true
         self.searchResults.removeAll()
-        guard let path = Bundle.main.resourceURL else {
-            fatalError("Couldn’t locate bundle resource root.")
-        }
-        let textEncoder = try! TextEncoder(resourcesAt: path)
+        let textEncoder = try! TextEncoder()
         let textEmb = try? textEncoder.computeTextEmbedding(prompt: self.searchText)
 
         if self.searchText.isEmpty {
@@ -129,7 +128,7 @@ extension SavedView {
         }
         
         if let textEmb {
-            for i in 0...self.embeddings.count {
+            for i in 0..<self.embeddings.count {
                 if let shapedArr = self.embeddings[i] {
                     let imgEmb = MLShapedArray<Float32>(scalars: shapedArr.scalars, shape: shapedArr.shape)
                     let sim = cosine_similarity(A: textEmb, B: imgEmb)

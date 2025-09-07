@@ -32,10 +32,11 @@ class ImageAnalysis: ObservableObject {
     @Published var segmentationMasks: [Int: UIImage]
     @Published var data: ResultData
     @Published var analysisStarted: Bool
-    private var detector: FurnitureDetector?
-    private let lock = NSLock()
+    private var provider: DetectorProvider
     
-    init() {
+    
+    init(provider: DetectorProvider) {
+        self.provider = provider
         self.furnitureImages = [:]
         self.furnitureCaptions = []
         self.itemsByIndex = [:]
@@ -47,12 +48,7 @@ class ImageAnalysis: ObservableObject {
     }
     
     private func loadDetector() async throws -> FurnitureDetector {
-        if let d = detector { return d }
-        let res = try await Task.detached(priority: .userInitiated) {
-            try FurnitureDetector()
-        }.value
-        lock.lock(); detector = res; lock.unlock()
-        return res;
+        try await provider.get()      // returns cached instance after first time
     }
     
     func runAnalysis() {

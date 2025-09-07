@@ -18,7 +18,7 @@ struct ResultData {
     var embedding: ShapedArrayCodable?
 }
 
-let STORAGE_KEY: String = "FurnitureFinderDataCounter"
+let DATA_COUNTER_KEY: String = "FurnitureFinderDataCounter"
 let IMAGE_PATH: String = "image.png"
 let EMBEDDING_PATH: String = "embedding.json"
 let ITEMS_PATH: String = "items.json"

@@ -10,7 +10,7 @@ import SwiftUI
 
 extension DeviceStorageModel {
     func storeUserData(resultData: ResultData) throws {
-        let currentIndex = UserDefaults.standard.integer(forKey: STORAGE_KEY)
+        let currentIndex = UserDefaults.standard.integer(forKey: DATA_COUNTER_KEY)
         print(currentIndex)
         let setFolder = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("data_\(currentIndex)")
@@ -43,7 +43,7 @@ extension DeviceStorageModel {
             guard let path = Bundle.main.resourceURL else {
                 throw BundleLocateResourceFailed()
             }
-            let imgEncoder = try! ImgEncoder(resourcesAt: path)
+            let imgEncoder = try! ImgEncoder()
             let imgEmbeddings = try! imgEncoder.computeImgEmbedding(img: img)
             let payload = ShapedArrayCodable(shape: imgEmbeddings.shape, scalars: imgEmbeddings.scalars)
             let data = try JSONEncoder().encode(payload)
@@ -84,8 +84,9 @@ extension DeviceStorageModel {
         }
         
         print("item")
+        UserDefaults.standard.set(resultData.maskList.count, forKey: "FurnitureFinderMaskCounter_\(currentIndex)")
+        UserDefaults.standard.set(currentIndex + 1, forKey: DATA_COUNTER_KEY)
         
-        UserDefaults.standard.set(currentIndex + 1, forKey: STORAGE_KEY)
-        print(UserDefaults.standard.integer(forKey: STORAGE_KEY))
+        print(UserDefaults.standard.integer(forKey: "FurnitureFinderMaskCounter_\(currentIndex)"))
     }
 }

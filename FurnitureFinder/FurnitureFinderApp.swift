@@ -21,14 +21,22 @@ class AppDelegate : NSObject, UIApplicationDelegate {
 @main
 struct FurnitureFinderApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    @StateObject private var vm = ImageAnalysis()
+    @StateObject private var vm: ImageAnalysis
     @StateObject private var storage = DeviceStorageModel()
+    let provider: DetectorProvider
+    
+    init() {
+        let p = DetectorProvider()
+        self.provider = p
+        self._vm = StateObject(wrappedValue: ImageAnalysis(provider: p))
+    }
     
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(vm)
                 .environmentObject(storage)
+                .task { await provider.preload() }
         }
     }
 }

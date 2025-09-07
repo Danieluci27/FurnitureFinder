@@ -55,9 +55,23 @@ struct ResultsView: View {
                 showInstruction = false
             }
             .sheet(item: $selectedIndex, onDismiss: {selectedIndex = nil}) { idx in
-                    ProductsView(items: items[idx],
-                                dismiss: { selectedIndex = nil })
+                if idx < items.count {
+                        ProductsView(items: items[idx],
+                                     dismiss: { selectedIndex = nil })
+                        .onAppear {
+                            print("Opening ProductsView for idx:", idx, "items count:", items.count)
+                        }
+                    } else {
+                        // Defensive fallback to avoid out-of-range crash
+                        Text("No products available for index \(idx)")
+                            .foregroundColor(.red)
+                            .onAppear {
+                                print("Invalid idx:", idx, "items count:", items.count)
+                            }
+                    }
+                
             }
+            
         }
     }
 }
