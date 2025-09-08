@@ -15,17 +15,19 @@ struct ShapedArrayCodable: Codable {
     let scalars: [Float]
 }
 
-
 struct AnalysisView: View {
     @EnvironmentObject private var vm: ImageAnalysis
     @EnvironmentObject private var storage: DeviceStorageModel
+    @Environment(\.dismiss) private var dismiss
     @State private var selectedItem: PhotosPickerItem?
     @State private var isPickerPresented: Bool
     @State private var selectedIndex: Int?
     @State private var selectedMaskIndex: Int?
     @State private var isShowingResult: Bool
-    @State private var showErrorAlert = false
-    @State private var errorMessage = ""
+    @State private var showErrorAlert: Bool
+    @State private var errorMessage: String
+    
+    @State private var start = CFAbsoluteTimeGetCurrent()
     
     init() {
         self._selectedItem = State(initialValue: nil)
@@ -40,12 +42,14 @@ struct AnalysisView: View {
             GeometryReader { geo in
                 VStack(spacing: 0) {
                     if let img = vm.data.image {
-                        ResultsView(
-                            image: img,
+                        MaskedImageView(
+                            baseImage: img,
                             masks: vm.data.maskList,
                             //show the mask only if segmentationMasks array is not empty and execution is finished.
-                            masksReady: !vm.segmentationMasks.isEmpty && (!vm.isLoading && vm.analysisStarted),
-                            items: vm.data.itemsList,
+                            maskReady: !vm.data.maskList.isEmpty && (!vm.isLoading && vm.analysisStarted),
+                            onMaskTap: { idx in
+                                selectedIndex = idx
+                            }
                         )
                         .frame(
                             width: geo.size.width,
@@ -105,14 +109,15 @@ struct AnalysisView: View {
                                 Task {
                                     if let data = try? await item.loadTransferable(type: Data.self),
                                        let ui = UIImage(data: data) {
-                                        vm.data.image = UIImage(named: "room")
+                                        vm.data.image = ui
                                     }
                                 }
                             }
                             
                             Button("Analyze") {
                                 Task {
-                                    vm.dummyAnalysis()
+                                    start = CFAbsoluteTimeGetCurrent()
+                                    vm.runAnalysis()
                                 }
                             }
                             .disabled(vm.data.image == nil)
@@ -128,7 +133,7 @@ struct AnalysisView: View {
                     }
                     //Post-analysis View
                     else if (vm.analysisStarted && !vm.isLoading) {
-                        //class Storage
+                        
                         Button("Save") {
                             do {
                                 try storage.storeUserData(resultData: vm.data)
@@ -143,13 +148,25 @@ struct AnalysisView: View {
                             Text(errorMessage)
                         })
                         
+                        Button("Return Home") {
+                            vm.analysisStarted = false
+                            vm.isLoading = false
+                            vm.data = ResultData()
+                            
+                            dismiss()
+                        }
+                        
                     }
                 }
                 .sheet(item: $selectedIndex, onDismiss: { selectedIndex = nil }) { idx in
                     ProductsView(
-                        items: vm.itemsByIndex[idx] ?? [],
+                        items: vm.data.itemsList[idx],
                         dismiss: { selectedIndex = nil }
                     )
+                }
+                .onChange(of: vm.data.maskList) { _ in
+                    let dt = (CFAbsoluteTimeGetCurrent() - start) * 1000
+                    print("SwiftUI received overlays in \(dt) ms")
                 }
             }
             .navigationTitle("Furniture Finder")

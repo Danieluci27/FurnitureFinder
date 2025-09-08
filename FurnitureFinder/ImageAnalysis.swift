@@ -16,34 +16,30 @@ import os
 
 /// Errors that can occur during analysis
 enum AnalysisError: Error {
-    /// The input image couldn’t be prepared for the model (pixel buffer / cgImage conversion failed)
-    case DetectionError
-    case ImageNotRegisteredError
+    case detectionFailed
+    case imageNotRegistered
+    case invalidMaskBatchOutput
 }
 
-
+@MainActor
 class ImageAnalysis: ObservableObject {
-    @Published var isLoading: Bool = false
-    @Published var totalDetections: Int = 0
-    @Published var imageToAnalyze: UIImage?
+    @Published var isLoading: Bool
+    @Published var totalDetections: Int
     @Published var furnitureImages: [Int: UIImage]
     @Published var furnitureCaptions: [String]
-    @Published var itemsByIndex: [Int: [SearchItem]]
-    @Published var segmentationMasks: [Int: UIImage]
     @Published var data: ResultData
     @Published var analysisStarted: Bool
     private var provider: DetectorProvider
     
     
     init(provider: DetectorProvider) {
+        self.isLoading = false
+        self.totalDetections = 0
         self.provider = provider
+        print("ImageAnalysis using provider:", ObjectIdentifier(provider))
         self.furnitureImages = [:]
         self.furnitureCaptions = []
-        self.itemsByIndex = [:]
-        self.totalDetections = 0
-        self.segmentationMasks = [:]
         self.analysisStarted = false
-        
         self.data = ResultData()
     }
     
@@ -51,28 +47,35 @@ class ImageAnalysis: ObservableObject {
         try await provider.get()      // returns cached instance after first time
     }
     
+    func resetStates() async {
+        await MainActor.run {
+            self.isLoading = true
+            self.analysisStarted = true
+            self.totalDetections   = 0
+            self.furnitureImages   = [:]
+            self.furnitureCaptions = []
+        }
+    }
+    
     func runAnalysis() {
-        Task {
+        Task.detached(priority: .userInitiated) {
             // reset published states
-            await MainActor.run {
-                self.isLoading = true
-                self.analysisStarted = true
-                self.totalDetections   = 0
-                self.furnitureImages   = [:]
-                self.furnitureCaptions = []
-                self.itemsByIndex      = [:]
-                self.segmentationMasks = [:]
-            }
+            await self.resetStates()
             
-            guard let original = self.imageToAnalyze else {
-                throw AnalysisError.ImageNotRegisteredError
+            guard let original = await self.data.image else {
+                await MainActor.run { self.isLoading = false }
+                print("Image not registered")
+                return
             }
             do {
-                let detector = try await loadDetector()
+                let detector = try await self.loadDetector()
+                print("loaded")
                 try? detector.predict(img: original)
                 
                 guard let detections = try? detector.processDetectionResults() else {
-                    throw DetectionError.InvalidPredictionResultError
+                    await MainActor.run { self.isLoading = false }
+                    print("Detection failed")
+                    return
                 }
                 guard !detections.isEmpty else {
                     await MainActor.run { self.isLoading = false }
@@ -84,87 +87,37 @@ class ImageAnalysis: ObservableObject {
                     return
                 }
                 
-                for det in detections {
-                    print(COCOLabels.all[det.cls])
-                    
-                    let origImgW = CGFloat(originalCG.width)
-                    let origImgH = CGFloat(originalCG.height)
-                    let cropBoxes: [[CGFloat]] = detections.map { det in
-                        let segRect = det.rect
-                            .applying(.init(scaleX: origImgW, y: origImgH))
-                            .intersection(.init(x: 0, y: 0, width: origImgW, height: origImgH))
-                        return [segRect.origin.x, segRect.origin.y, segRect.origin.x + segRect.size.width, segRect.origin.y + segRect.size.height]
-                    }
-                    /*
-                     let masks = await fetchMask(cropImage: original, boxArray: cropBoxes)
-                     if let masks {
-                     for (idx, mask) in masks.enumerated() {
-                     if let mask {
-                     self.segmentationMasks[idx] = mask
-                     print("Mask added.")
-                     }
-                     }
-                     }
-                     */
-                    await MainActor.run {
-                        self.isLoading = false   // if you want to hide your spinner too
-                    }
-                    /*
-                     // 3) Fire off all masks + Amazon calls in parallel:
-                     await withTaskGroup(of: Void.self) { group in
-                     for (idx, det) in detections.enumerated() {
-                     group.addTask {
-                     let resizedImgW = CGFloat(cgImage.width)
-                     let resizedImgH = CGFloat(cgImage.height)
-                     
-                     let origImgW = CGFloat(originalCG.width)
-                     let origImgH = CGFloat(originalCG.height)
-                     print(det.rect)
-                     
-                     let cropRect = det.rect
-                     .applying(.init(scaleX: resizedImgW, y: resizedImgH))
-                     .intersection(.init(x: 0, y: 0, width: resizedImgW, height: resizedImgH))
-                     
-                     let segRect = det.rect
-                     .applying(.init(scaleX: origImgW, y: origImgH))
-                     .intersection(.init(x: 0, y: 0, width: origImgW, height: origImgH))
-                     
-                     guard let cropCG = cgImage.cropping(to: cropRect) else { return }
-                     let croppedImage = UIImage(cgImage: cropCG)
-                     let label = COCOLabels.all[det.cls]
-                     print("Label ", label)
-                     
-                     // push image+label immediately
-                     await MainActor.run {
-                     self.furnitureImages[idx] = croppedImage
-                     self.furnitureCaptions.append(label)
-                     }
-                     
-                     // do SAM + Amazon in parallel
-                     //async let items = self.fetchAmazonItems(label: label)
-                     async let mask = fetchMask(cropImage: original, box:
-                     
-                     let gotMask = await mask
-                     
-                     // update UI when both done
-                     await MainActor.run {
-                     // Use the newly fetched mask image (gotMask), not the old stored mask
-                     self.segmentationMasks[idx] = gotMask
-                     // once we have results for every index, clear the spinner
-                     if self.itemsByIndex.count == self.totalDetections {
-                     self.isLoading = false
-                     }
-                     }
-                     }
-                     }
-                     }
-                     */
+                let origImgW = CGFloat(originalCG.width)
+                let origImgH = CGFloat(originalCG.height)
+                let cropBoxes: [[CGFloat]] = detections.map { det in
+                    let segRect = det.rect
+                        .applying(.init(scaleX: origImgW, y: origImgH))
+                        .intersection(.init(x: 0, y: 0, width: origImgW, height: origImgH))
+                    return [segRect.origin.x, segRect.origin.y, segRect.origin.x + segRect.size.width, segRect.origin.y + segRect.size.height]
                 }
+                let start = Date()
+                guard let masks = await fetchMask(cropImage: original, boxArray: cropBoxes) else {
+                    await MainActor.run { self.isLoading = false }
+                    print("Invalid mask batch output")
+                    return
+                }
+                let elapsed = Date().timeIntervalSince(start)
+                print("fetchMask took \(elapsed) seconds for generating \(cropBoxes.count) masks")
+                //filter nil
+                let filteredMasks = masks.compactMap { $0 }
+                
+                await MainActor.run {
+                    self.data.maskList.append(contentsOf: filteredMasks)
+                    self.isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.isLoading = false
+                }
+                print("Error during analysis: \(error)")
             }
-            
         }
     }
-    
     //for UI Testing
     func dummyAnalysis() {
         self.analysisStarted = true

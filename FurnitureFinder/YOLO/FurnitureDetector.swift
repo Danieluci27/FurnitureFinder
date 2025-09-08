@@ -60,8 +60,6 @@ class FurnitureDetector: ObservableObject {
         var detections: [Detection] = []
         for det in 0..<numDetections {
             let best = (0..<numClasses).reduce((cls: -1, conf: Float(CONFIDENCE_THRESHOLD))) { acc, cls in
-                print("Detection: ", det)
-                print("cls: ", cls)
                 let c = confs[[det as NSNumber, cls as NSNumber]].floatValue
                 return c > acc.conf ? (cls, c) : acc
             }
@@ -71,7 +69,6 @@ class FurnitureDetector: ObservableObject {
                 let w     = coords[[det as NSNumber, 2]].doubleValue
                 let h     = coords[[det as NSNumber, 3]].doubleValue
                 let rect  = CGRect(x: cx - w/2, y: cy - h/2, width: w, height: h)
-                print(best.cls)
                 detections.append(Detection(cls: best.cls, rect: rect))
             }
         }

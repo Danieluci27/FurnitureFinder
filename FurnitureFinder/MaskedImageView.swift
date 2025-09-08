@@ -23,16 +23,16 @@ struct MaskedImageView: View {
           .clipped()
           .overlay(
             Group {
-              if maskReady {
-                ForEach(masks.indices, id: \.self) { (idx: Int) in
-                  Image(uiImage: masks[idx])
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: geo.size.width, height: geo.size.height)
-                    .clipped()
-                    .opacity(0.3)
+                if maskReady {
+                    ForEach(masks.indices, id: \.self) { (idx: Int) in
+                        Image(uiImage: masks[idx])
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: geo.size.width, height: geo.size.height)
+                            .clipped()
+                            .opacity(0.3)
+                    }
                 }
-              }
             }
           )
       }
