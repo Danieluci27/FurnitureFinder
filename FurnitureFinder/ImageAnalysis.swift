@@ -16,6 +16,7 @@ import os
 
 /// Errors that can occur during analysis
 enum AnalysisError: Error {
+    case analysisError
     case detectionFailed
     case imageNotRegistered
     case invalidMaskBatchOutput
@@ -36,7 +37,6 @@ class ImageAnalysis: ObservableObject {
         self.isLoading = false
         self.totalDetections = 0
         self.provider = provider
-        print("ImageAnalysis using provider:", ObjectIdentifier(provider))
         self.furnitureImages = [:]
         self.furnitureCaptions = []
         self.analysisStarted = false
@@ -57,7 +57,7 @@ class ImageAnalysis: ObservableObject {
         }
     }
     
-    func runAnalysis() {
+    func runAnalysis() async throws {
         Task.detached(priority: .userInitiated) {
             // reset published states
             await self.resetStates()
@@ -68,8 +68,11 @@ class ImageAnalysis: ObservableObject {
                 return
             }
             do {
+                //measure how long it takes to load a model
+                var start = Date()
                 let detector = try await self.loadDetector()
-                print("loaded")
+                var elapsed = Date().timeIntervalSince(start)
+                print("loading took: \(elapsed) seconds")
                 try? detector.predict(img: original)
                 
                 guard let detections = try? detector.processDetectionResults() else {
@@ -95,13 +98,13 @@ class ImageAnalysis: ObservableObject {
                         .intersection(.init(x: 0, y: 0, width: origImgW, height: origImgH))
                     return [segRect.origin.x, segRect.origin.y, segRect.origin.x + segRect.size.width, segRect.origin.y + segRect.size.height]
                 }
-                let start = Date()
+                start = Date()
                 guard let masks = await fetchMask(cropImage: original, boxArray: cropBoxes) else {
                     await MainActor.run { self.isLoading = false }
                     print("Invalid mask batch output")
                     return
                 }
-                let elapsed = Date().timeIntervalSince(start)
+                elapsed = Date().timeIntervalSince(start)
                 print("fetchMask took \(elapsed) seconds for generating \(cropBoxes.count) masks")
                 //filter nil
                 let filteredMasks = masks.compactMap { $0 }
@@ -114,7 +117,7 @@ class ImageAnalysis: ObservableObject {
                 await MainActor.run {
                     self.isLoading = false
                 }
-                print("Error during analysis: \(error)")
+                throw AnalysisError.analysisError
             }
         }
     }

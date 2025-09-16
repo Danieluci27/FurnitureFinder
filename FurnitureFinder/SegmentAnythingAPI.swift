@@ -26,6 +26,8 @@ func sendToSegmentAnythingAPI(
         return []
     }
     /*
+    This code snippet is for firebase authentication. There seems to be error in configuring plist file for Authentication,
+    I've changed API endpoints to be public just for testing, and have to fix this issue before production.
     let user = try await withCheckedThrowingContinuation { cont in
         Auth.auth().signInAnonymously { result, error in
             if let user = result?.user {

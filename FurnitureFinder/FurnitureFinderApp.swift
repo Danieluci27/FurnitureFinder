@@ -36,9 +36,6 @@ struct FurnitureFinderApp: App {
             ContentView()
                 .environmentObject(vm)
                 .environmentObject(storage)
-                .task {
-                    print("App preload using provider:", ObjectIdentifier(provider))
-                    await provider.preload() }
         }
     }
 }

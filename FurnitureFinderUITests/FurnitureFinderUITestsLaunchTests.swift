@@ -19,14 +19,18 @@ final class FurnitureFinderUITestsLaunchTests: XCTestCase {
 
     func testLaunch() throws {
         let app = XCUIApplication()
-        app.launch()
+        // Mark this run so the app can skip non-essential work during UI tests
+        app.launchArguments += ["-UITests"]
 
-        // Insert steps here to perform after app launch but before taking a screenshot,
-        // such as logging into a test account or navigating somewhere in the app
+        // Measure cold launch time explicitly
+        measure(metrics: [XCTApplicationLaunchMetric()]) {
+            app.launch()
+        }
 
+        // Take a screenshot after launch
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "Launch Screen"
-        attachment.lifetime = .keepAlways
+        attachment.lifetime = .deleteOnSuccess
         add(attachment)
     }
 }

@@ -40,9 +40,6 @@ extension DeviceStorageModel {
         
         let embeddingURL = setFolder.appendingPathComponent(EMBEDDING_PATH)
         do {
-            guard let path = Bundle.main.resourceURL else {
-                throw BundleLocateResourceFailed()
-            }
             let imgEncoder = try! ImgEncoder()
             let imgEmbeddings = try! imgEncoder.computeImgEmbedding(img: img)
             let payload = ShapedArrayCodable(shape: imgEmbeddings.shape, scalars: imgEmbeddings.scalars)
