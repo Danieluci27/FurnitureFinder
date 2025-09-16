@@ -24,10 +24,8 @@ struct AnalysisView: View {
     @State private var selectedIndex: Int?
     @State private var selectedMaskIndex: Int?
     @State private var isShowingResult: Bool
-    @State private var showErrorAlert: Bool
-    @State private var errorMessage: String
-    
-    @State private var start = CFAbsoluteTimeGetCurrent()
+    @State var showErrorAlert: Bool
+    @State var errorMessage: String
     
     init() {
         self._selectedItem = State(initialValue: nil)
@@ -116,8 +114,12 @@ struct AnalysisView: View {
                             
                             Button("Analyze") {
                                 Task {
-                                    start = CFAbsoluteTimeGetCurrent()
-                                    vm.runAnalysis()
+                                    do {
+                                        try await vm.runAnalysis()
+                                    } catch {
+                                        errorMessage = "Sorry, something went wrong while analyzing an image."
+                                        showErrorAlert = true
+                                    }
                                 }
                             }
                             .disabled(vm.data.image == nil)
@@ -126,6 +128,9 @@ struct AnalysisView: View {
                             .background(vm.data.image == nil ? Color.gray : Color.green)
                             .foregroundColor(.white)
                             .cornerRadius(8)
+                            .errorAlert(title: "Analyze",
+                                        isPresented: $showErrorAlert,
+                                        message: errorMessage)
                         }
                         .padding()
                         .frame(height: geo.size.height / 2)
@@ -142,11 +147,9 @@ struct AnalysisView: View {
                                 showErrorAlert = true
                             }
                         }
-                        .alert("Save Status", isPresented: $showErrorAlert, actions: {
-                            Button("OK", role: .cancel) { }
-                        }, message: {
-                            Text(errorMessage)
-                        })
+                        .errorAlert(title: "Save",
+                                    isPresented: $showErrorAlert,
+                                    message: errorMessage)
                         
                         Button("Return Home") {
                             vm.analysisStarted = false
@@ -164,12 +167,20 @@ struct AnalysisView: View {
                         dismiss: { selectedIndex = nil }
                     )
                 }
-                .onChange(of: vm.data.maskList) { _ in
-                    let dt = (CFAbsoluteTimeGetCurrent() - start) * 1000
-                    print("SwiftUI received overlays in \(dt) ms")
-                }
             }
             .navigationTitle("Furniture Finder")
         }
+    }
+}
+
+extension View {
+    func errorAlert(title: String,
+                    isPresented: Binding<Bool>,
+                    message: String) -> some View {
+        self.alert(title, isPresented: isPresented, actions: {
+            Button("OK", role: .cancel) { }
+        }, message: {
+            Text(message)
+        })
     }
 }
