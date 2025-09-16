@@ -36,11 +36,11 @@ extension DeviceStorageModel {
             
             //TO-DO: Use Image Compression Algorithm to allow more mask counts.
             let maskFolderURL = setFolder.appendingPathComponent(MASK_FOLDER_PATH)
-            if let files = try? FileManager.default.contentsOfDirectory(at: maskFolderURL,
-                                                                        includingPropertiesForKeys: nil)
+            if let _ = try? FileManager.default.contentsOfDirectory(at: maskFolderURL,
+                                                            includingPropertiesForKeys: nil)
             {
-                for i in 0..<numMask {
-                    let url = maskFolderURL.appendingPathComponent("mask_\(i).png")
+                for idx in 0..<numMask {
+                    let url = maskFolderURL.appendingPathComponent("mask_\(idx).png")
                     if let data = try? Data(contentsOf: url),
                        let mask = UIImage(data: data) {
                         storedData.maskList.append(mask)
